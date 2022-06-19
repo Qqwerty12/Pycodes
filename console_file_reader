@@ -1,0 +1,41 @@
+import sys
+for argv in sys.argv[1:]:
+    with open(argv) as file:
+        cat = file.read()
+        sys.stdout.write(cat)
+
+
+
+import requests
+from bs4 import BeautifulSoup
+def request_github_trending(url):
+    return requests.get(url)
+
+def extract(page):
+    soup = BeautifulSoup(page.content, "html.parser")
+    return soup.find_all("article")
+
+def transform(html_repos):
+    res = []
+    for i in html_repos:
+        REPOS_NAME = ''.join(i.select_one('h1.h3.lh-condensed').text.split())
+        NAME = i.select_one('img.avatar.mb-1.avatar-user')['alt']
+        NBR_STARS = ''.join(i.select_one('span.d-inline-block.float-sm-right').text.split())
+        res.append({'developer': NAME, 'repository_name': REPOS_NAME, 'nbr_stars': NBR_STARS})
+    return res
+
+def format(repositories_data):
+    res = ["Developer, Repository Name, Number of Stars"]
+    for arg in repositories_data:
+        r = [arg["developer"], arg['repository_name'], arg['nbr_stars']]
+        res.append(', '.join(r))
+    return '\n'.join(res)
+
+def _main():
+    url = "https://github.com/trending"
+    page = request_github_trending(url)
+    rows = extract(page)
+    Data = transform(rows)
+    print(format(Data))
+
+_main()
