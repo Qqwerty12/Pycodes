@@ -1,0 +1,200 @@
+import csv
+import re
+
+
+def load_data(file): #opens raw file and returns list of lists with data
+    with open(file, 'r', encoding = "utf-8") as csv_text:
+        line= csv.reader(csv_text, delimiter = '|')
+        res = [i for i in line]
+    return res
+
+
+def is_home(play_by_plays, player): #checks whether player from home or away team
+    for i in range(len(play_by_plays)):
+        if player in play_by_plays[i][-1]:
+            mac = re.findall(r"(\w\. \w+)", play_by_plays[i][-1])
+            if mac[0] == player:
+                current = play_by_plays[i][2]
+            else:
+                if "assist" in play_by_plays[i][-1] or "drawn" in play_by_plays[i][-1]:
+                    current = play_by_plays[i][2]
+                else:
+                    if play_by_plays[i][3] != play_by_plays[i][2]:
+                        current = play_by_plays[i][3]
+                    else:
+                        current = play_by_plays[i][4]
+    return False if current == play_by_plays[0][3] else True
+
+
+def all_plys(play_by_play): #finds all players' names in document
+    lst_nams = []
+    for i in range(len(play_by_play)):
+        l = re.findall(r"(\w\. \w+)", play_by_play[i][-1])
+        for j in l:
+            if j not in lst_nams:
+                lst_nams.append(j)
+    return lst_nams
+
+
+def ply_sts(play_by_plays): #calculates players' stats and returns two dictionaries with home and away teams' players' data
+    lst_nams = []
+    lst_nams = all_plys(play_by_plays)
+    lst_stats_a = []
+    lst_stats_h = []
+    for player in lst_nams:
+        ply_dic = {"player_name": "", "FG": 0, "FGA": 0, "FG%": 0, "3P": 0, "3PA": 0, "3P%": 0, "FT": 0, "FTA": 0, "FT%": 0, "ORB": 0, "DRB": 0, "TRB": 0, "AST": 0, "STL": 0, "BLK": 0, "TOV": 0, "PF": 0, "PTS": 0}
+        ply_dic["player_name"] = player
+        for i in range(len(play_by_plays)):
+            name = re.search(r"(\w\. \w+)", play_by_plays[i][-1])
+            Free_thr = re.search(r"(\w\. \w+) makes free throw", play_by_plays[i][-1])
+            Free_thr_ms = re.search(r"(\w\. \w+) misses free throw", play_by_plays[i][-1])
+            Free_thr_pt = re.search(r"(\w\. \w+) makes clear path free throw", play_by_plays[i][-1])
+            Free_thr_pt_ms = re.search(r"(\w\. \w+) misses clear path free throw", play_by_plays[i][-1])
+            Miss_2pt = re.search(r"(\w\. \w+) misses 2-pt", play_by_plays[i][-1])
+            Miss_3pt = re.search(r"(\w\. \w+) misses 3-pt", play_by_plays[i][-1])
+            mk_2pt = re.search(r"(\w\. \w+) makes 2-pt", play_by_plays[i][-1])
+            mk_3pt = re.search(r"(\w\. \w+)  makes 3-pt", play_by_plays[i][-1])
+            asst = re.search(r"(assist by) (\w\. \w+)", play_by_plays[i][-1])
+            Turnov_pl = re.search(r"Turnover by (\w\. \w+)", play_by_plays[i][-1])
+            Off_reb = re.search(r"Offensive rebound by (\w\. \w+)", play_by_plays[i][-1])
+            Def_reb = re.search(r"Defensive rebound by (\w\. \w+)", play_by_plays[i][-1])
+            Foul = re.search(r"foul by (\w\. \w+)", play_by_plays[i][-1])
+            Block = re.search(r"(block by) (\w\. \w+)", play_by_plays[i][-1])
+            Steal = re.search(r"(steal by) (\w\. \w+)", play_by_plays[i][-1])
+            if name:
+                name2 = name.group(0)
+                if name2 == player:
+                    if Free_thr:
+                        ply_dic["FT"] += 1
+                        ply_dic["FTA"] += 1
+                    if Free_thr_ms:
+                        ply_dic["FTA"] += 1
+                    if Free_thr_pt:
+                        ply_dic["FT"] += 1
+                        ply_dic["FTA"] += 1
+                    if Free_thr_pt_ms:
+                        ply_dic["FTA"] += 1
+                    if Miss_2pt:
+                        ply_dic["FGA"] += 1
+                    if Miss_3pt:
+                        ply_dic["FGA"] += 1
+                        ply_dic["3PA"] += 1
+                    if mk_2pt:
+                        ply_dic["FG"] += 1
+                        ply_dic["FGA"] += 1
+                    if mk_3pt:
+                        ply_dic["FGA"] += 1
+                        ply_dic["FG"] += 1
+                        ply_dic["3P"] += 1
+                        ply_dic["3PA"] += 1
+                    if Foul:
+                        ply_dic["PF"] += 1
+                    if Turnov_pl:
+                        ply_dic["TOV"] += 1
+                    if Off_reb:
+                        ply_dic["ORB"] += 1
+                        ply_dic["TRB"] += 1
+                    if Def_reb:
+                        ply_dic["DRB"] += 1
+                        ply_dic["TRB"] += 1
+                if asst:
+                    name_asst = asst.group(2)
+                    if name_asst == player:
+                        ply_dic["AST"] += 1
+                if Block:
+                    name_Block = Block.group(2)
+                    if name_Block == player:
+                        ply_dic["BLK"] += 1
+                if Steal:
+                    name_Steal = Steal.group(2)
+                    if name_Steal == player:
+                        ply_dic["STL"] += 1
+                if ply_dic["FGA"] == 0:
+                    ply_dic["FG%"] = 0
+                else:
+                    ply_dic["FG%"] = round(ply_dic["FG"]/ply_dic["FGA"], 3)
+                if ply_dic["3PA"] == 0:
+                    ply_dic["3P%"] = 0
+                else:
+                    ply_dic["3P%"] = round(ply_dic["3P"]/ply_dic["3PA"], 3)
+                if ply_dic["FTA"] == 0:
+                    ply_dic["FT%"] = 0
+                else:
+                    ply_dic["FT%"] = round(ply_dic["FT"]/ply_dic["FTA"], 3)
+                if ply_dic["FG"] != 0:
+                    ply_dic["PTS"] = ply_dic["3P"]*3 + (ply_dic["FG"]-ply_dic["3P"])*2
+                else:
+                    ply_dic["PTS"] = 0
+        if is_home(play_by_plays, player):
+            lst_stats_h.append(ply_dic)
+        else:
+            lst_stats_a.append(ply_dic)
+    return lst_stats_h, lst_stats_a 
+
+
+def analyse_nba_game(play_by_plays): #creates general dictionary and fills it
+    result = {"home_team": {"name": play_by_plays[0][4]}, 
+    "away_team": {"name": play_by_plays[0][3]}}
+    res = ply_sts(play_by_plays)
+    result["home_team"]["players_data"] = res[0]
+    result["away_team"]["players_data"] = res[1]
+    return result
+
+
+def print_ttl_sum(arr): #Calculates and prints total result of team
+    FG, FGA, FGp = 0, 0, 0
+    thrP, thrPA, thrPp = 0, 0, 0
+    FT, FTA, FTp = 0, 0, 0
+    ORB, DRB, TRB = 0, 0, 0 
+    AST, STL, BLK = 0, 0, 0
+    TOV, PF, PTS = 0, 0, 0
+    for i in range(len(arr)):
+        FG += arr[i]["FG"]
+        FGA += arr[i]["FGA"]
+        FGp += arr[i]["FG%"]
+        thrP += arr[i]["3P"]
+        thrPA += arr[i]["3PA"]
+        thrPp += arr[i]["3P%"]
+        FT += arr[i]["FT"]
+        FTA += arr[i]["FTA"]
+        FTp += arr[i]["FT%"]
+        ORB += arr[i]["ORB"]
+        DRB += arr[i]["DRB"]
+        TRB += arr[i]["TRB"]
+        AST += arr[i]["AST"]
+        STL += arr[i]["STL"]
+        BLK += arr[i]["BLK"]
+        TOV += arr[i]["TOV"]
+        PF += arr[i]["PF"]
+        PTS += arr[i]["PTS"]
+    _arr = [FG,	FGA, round(FGp/len(arr),3), thrP, thrPA, round(thrPp/len(arr),3), FT, FTA, round(FTp/len(arr),3),	ORB, DRB, TRB, AST,	STL, BLK, TOV, PF, PTS]
+    print("Team Totals ", end = "")
+    print(*_arr)
+    print("\n\n")
+
+
+def print_nba_game_stats(team_dict): #prints all the data as it should be provided
+    #home team
+    kys = team_dict["home_team"]["players_data"][0].keys()
+    print(team_dict["home_team"]["name"])
+    print(*kys)
+    for i in range(len(team_dict["home_team"]["players_data"])):
+        temp = team_dict["home_team"]["players_data"][i].values()
+        print(*temp)
+    print_ttl_sum(team_dict["home_team"]["players_data"])
+    #away team
+    print(team_dict["away_team"]["name"])
+    print(*kys)
+    for i in range(len(team_dict["away_team"]["players_data"])):
+        temp = team_dict["away_team"]["players_data"][i].values()
+        print(*temp)
+    print_ttl_sum(team_dict["away_team"]["players_data"])
+
+
+def imain(): #general function for task
+    play = load_data('WarriorsvsThunders.txt') #here can use any of documents with raw data
+    #play = load_data('BlazersvsLakers.txt') 
+    stat_dic = analyse_nba_game(play)
+    print_nba_game_stats(stat_dic)
+
+imain()
